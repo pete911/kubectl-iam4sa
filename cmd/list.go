@@ -26,14 +26,15 @@ func init() {
 
 func runListCmd(_ *cobra.Command, args []string) {
 	logger := Logger()
-	k8sClient, err := k8s.NewClient(logger, RestConfig())
+	kubeconfig := GetKubeconfig()
+
+	k8sClient, err := k8s.NewClient(logger, kubeconfig.RestConfig)
 	if err != nil {
 		fmt.Printf("k8s client: %v\n", err)
 		os.Exit(1)
 	}
 
-	// TODO - get region from kubeconfig, or from flags
-	awsClient, err := aws.NewClient(logger, "eu-west-2")
+	awsClient, err := aws.NewClient(logger, kubeconfig.Region())
 	if err != nil {
 		fmt.Printf("aws client: %v\n", err)
 		os.Exit(1)

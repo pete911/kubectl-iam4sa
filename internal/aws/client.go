@@ -34,10 +34,16 @@ func NewClient(logger *slog.Logger, region string) (Client, error) {
 	if err != nil {
 		return Client{}, err
 	}
-	cfg.Region = region
+
+	log := logger.With("component", "aws")
+	if region == "" {
+		log.Warn(fmt.Sprintf("no region supplied, defaulting to %s, this can be different from cluster region", cfg.Region))
+	} else {
+		cfg.Region = region
+	}
 
 	return Client{
-		logger:           logger.With("component", "aws"),
+		logger:           log,
 		iamClient:        iam.NewFromConfig(cfg),
 		cloudTrailClient: cloudtrail.NewFromConfig(cfg),
 	}, nil
