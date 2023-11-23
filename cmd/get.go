@@ -62,26 +62,27 @@ func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount
 	}
 	roleExists := sa.RoleName() == role.Name
 
-	oidcProviderUrl, err := awsClient.GetClusterOIDCProviderUrl()
+	oidcProvider, err := awsClient.GetClusterOIDCProvider()
 	if err != nil {
 		logger.Error(fmt.Sprintf("get cluster oidc provider url: %v", err))
 	}
-	fmt.Printf("oidc provider url: %s\n", oidcProviderUrl)
 
 	//events, err := awsClient.LookupEvents(sa.Namespace, sa.Name)
 	//if err != nil {
 	//	logger.Error(fmt.Sprintf("lookup %s/%s event: %v", sa.Namespace, sa.Name, err))
 	//}
 
-	fmt.Printf("Name:      %s\n", sa.Name)
-	fmt.Printf("Namespace: %s\n", sa.Namespace)
+	fmt.Printf("Namespace: %s Name: %s\n", sa.Namespace, sa.Name)
 	fmt.Println("pods:")
 	for _, pod := range sa.Pods {
 		fmt.Printf("  %s\n", pod)
 	}
-	fmt.Println("IAM Role:")
-	fmt.Printf("  ARN:    %s\n", sa.IamRoleArn)
-	fmt.Printf("  Exists: %t\n", roleExists)
+	fmt.Printf("IAM Role ARN: %s\n", sa.IamRoleArn)
+	fmt.Printf("  Expected Federated Principal: %s\n", oidcProvider.Arn)
+	fmt.Printf(`  Expected aud: %s:aud": "sts.amazon.com"`, oidcProvider.Url)
+	fmt.Println()
+	fmt.Printf(`  Expected sub: %s:sub": "system:serviceaccount:%s:%s"`, oidcProvider.Url, sa.Namespace, sa.Name)
+	fmt.Println()
 	if roleExists {
 		fmt.Println("  Assume Policy Document:")
 		jsonPrettyPrint(logger, role.AssumeRolePolicyDocument)

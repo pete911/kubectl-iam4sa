@@ -16,4 +16,36 @@ account. IAM Role account and name is from the service account annotation. Event
 
 ## get service account
 
-TODO
+`kubeclt-iam4sa get -n <namespace> <service-account>`
+```shell
+Namespace: prometheus Name: amp-iamproxy-ingest-service-account
+pods:
+  prometheus-server-abc-xyz
+IAM Role ARN: arn:aws:iam::123456789123:role/prometheus
+  Expected Federated Principal: arn:aws:iam::123456789123:oidc-provider/oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
+  Expected aud: oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:aud": "sts.amazon.com"
+  Expected sub: oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:sub": "system:serviceaccount:prometheus:amp-iamproxy-ingest-service-account"
+  Assume Policy Document:
+{
+  "Statement": [
+    {
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:aud": "sts.amazonaws.com",
+          "oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:sub": "system:serviceaccount:prometheus:amp-iamproxy-ingest-service-account"
+        }
+      },
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789123:oidc-provider/oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123"
+      },
+      "Sid": ""
+    }
+  ],
+  "Version": "2012-10-17"
+}
+```
+
+List more detailed information about service account(s). IAM Trust policy and also expected principal, aud and sub. This
+makes it easier to verify if the IAM policy is configured correctly.

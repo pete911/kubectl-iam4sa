@@ -93,16 +93,21 @@ func (c Client) LookupEvents(namespace, serviceAccount string) (Events, error) {
 	return c.toEvents(events), nil
 }
 
-func (c Client) GetClusterOIDCProviderUrl() (string, error) {
+type OIDCProvider struct {
+	Url string
+	Arn string
+}
+
+func (c Client) GetClusterOIDCProvider() (OIDCProvider, error) {
 	endpoint, err := c.getClusterEndpoint()
 	if err != nil {
-		return "", err
+		return OIDCProvider{}, err
 	}
 	endpointWithoutScheme := strings.TrimPrefix(endpoint, "https://")
 
 	openIDConnectProvidersArns, err := c.listOpenIDConnectProvidersArns()
 	if err != nil {
-		return "", err
+		return OIDCProvider{}, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -112,16 +117,19 @@ func (c Client) GetClusterOIDCProviderUrl() (string, error) {
 		out, err := c.iamClient.GetOpenIDConnectProvider(ctx, &iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: aws.String(arn)})
 		if err != nil {
 			err = handleResponseError(err, fmt.Sprintf("openid connect provider %s", arn))
-			return "", err
+			return OIDCProvider{}, err
 		}
 		url := aws.ToString(out.Url)
 		urlParts := strings.Split(url, "/")
 		id := urlParts[len(urlParts)-1]
 		if strings.HasPrefix(endpointWithoutScheme, id) {
-			return url, nil
+			return OIDCProvider{
+				Url: url,
+				Arn: arn,
+			}, nil
 		}
 	}
-	return "", errs.NewErrNotFound(fmt.Sprintf("open id connect provider url not found for cluster endpoint %s", endpoint))
+	return OIDCProvider{}, errs.NewErrNotFound(fmt.Sprintf("open id connect provider url not found for cluster endpoint %s", endpoint))
 }
 
 func (c Client) listOpenIDConnectProvidersArns() ([]string, error) {
