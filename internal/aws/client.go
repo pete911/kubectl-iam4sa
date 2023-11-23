@@ -9,12 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudtrail"
 	cloudtrailtypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/pete911/kubectl-iam4sa/internal/errs"
-	"k8s.io/apimachinery/pkg/util/json"
 	"log/slog"
-	"net/url"
+	"strings"
 	"time"
 )
 
@@ -22,11 +21,13 @@ const eventsHours = 12
 
 type Client struct {
 	logger           *slog.Logger
+	clusterName      string
 	iamClient        *iam.Client
 	cloudTrailClient *cloudtrail.Client
+	eksClient        *eks.Client
 }
 
-func NewClient(logger *slog.Logger, region string) (Client, error) {
+func NewClient(logger *slog.Logger, region, clusterName string) (Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -35,44 +36,20 @@ func NewClient(logger *slog.Logger, region string) (Client, error) {
 		return Client{}, err
 	}
 
-	log := logger.With("component", "aws")
+	// we should use the same region as is in the kubeconfig, if this is not the case, log warning
 	if region == "" {
-		log.Warn(fmt.Sprintf("no region supplied, defaulting to %s, this can be different from cluster region", cfg.Region))
+		logger.Warn(fmt.Sprintf("no region supplied, defaulting to %s, this can be different from cluster region", cfg.Region))
 	} else {
 		cfg.Region = region
 	}
 
 	return Client{
-		logger:           log,
+		logger:           logger,
+		clusterName:      clusterName,
 		iamClient:        iam.NewFromConfig(cfg),
 		cloudTrailClient: cloudtrail.NewFromConfig(cfg),
+		eksClient:        eks.NewFromConfig(cfg),
 	}, nil
-}
-
-type Role struct {
-	ARN                      string
-	Name                     string
-	Description              string
-	AssumeRolePolicyDocument string
-	CreateDate               time.Time
-	RoleLastUsed             time.Time
-}
-
-func (c Client) toRole(role *iamtypes.Role) Role {
-	roleName := aws.ToString(role.RoleName)
-	document, err := url.QueryUnescape(aws.ToString(role.AssumeRolePolicyDocument))
-	if err != nil {
-		c.logger.Warn(fmt.Sprintf("unescape %s assume role policy: %v", roleName, err))
-	}
-
-	return Role{
-		ARN:                      aws.ToString(role.Arn),
-		Name:                     roleName,
-		Description:              aws.ToString(role.Description),
-		AssumeRolePolicyDocument: document,
-		CreateDate:               aws.ToTime(role.CreateDate),
-		RoleLastUsed:             aws.ToTime(role.RoleLastUsed.LastUsedDate),
-	}
 }
 
 func (c Client) GetIAMRole(roleName string) (Role, error) {
@@ -81,73 +58,10 @@ func (c Client) GetIAMRole(roleName string) (Role, error) {
 
 	out, err := c.iamClient.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(roleName)})
 	if err != nil {
-		var responseError *http.ResponseError
-		if errors.As(err, &responseError) && responseError.HTTPStatusCode() == 404 {
-			return Role{}, errs.NewErrNotFound(fmt.Sprintf("role %s not found", roleName))
-		}
+		err = handleResponseError(err, fmt.Sprintf("role %s", roleName))
 		return Role{}, err
 	}
 	return c.toRole(out.Role), nil
-}
-
-type Events []Event
-
-func (e Events) FailedEvents() Events {
-	var out Events
-	for _, event := range e {
-		if event.ErrorMessage != "" || event.ErrorCode != "" {
-			out = append(out, event)
-		}
-	}
-	return out
-}
-
-type Event struct {
-	EventTime         time.Time         `json:"-"`
-	EventId           string            `json:"-"`
-	EventSource       string            `json:"-"`
-	EventName         string            `json:"-"`
-	UserName          string            `json:"-"`
-	ErrorCode         string            `json:"errorCode"`    // set when there's error
-	ErrorMessage      string            `json:"errorMessage"` // set when there's error
-	UserIdentity      UserIdentity      `json:"userIdentity"`
-	Region            string            `json:"awsRegion"`
-	SourceIP          string            `json:"sourceIPAddress"`
-	UserAgent         string            `json:"userAgent"`
-	RequestParameters RequestParameters `json:"requestParameters"`
-	RequestId         string            `json:"requestId"`
-	EventType         string            `json:"eventType"`
-}
-
-type UserIdentity struct {
-	Type             string `json:"type"`
-	PrincipalId      string `json:"principalId"`
-	UserName         string `json:"userName"`
-	IdentityProvider string `json:"identityProvider"`
-}
-
-type RequestParameters struct {
-	RoleArn         string `json:"roleArn"`
-	RoleSessionName string `json:"roleSessionName"`
-}
-
-func (c Client) toEvents(events []cloudtrailtypes.Event) Events {
-	var out []Event
-	for _, e := range events {
-		// set these fields from response, if json unmarshal fails, at least we have some info
-		event := Event{
-			EventTime:   aws.ToTime(e.EventTime),
-			EventId:     aws.ToString(e.EventId),
-			EventSource: aws.ToString(e.EventSource),
-			EventName:   aws.ToString(e.EventName),
-			UserName:    aws.ToString(e.Username),
-		}
-		if err := json.Unmarshal([]byte(aws.ToString(e.CloudTrailEvent)), &event); err != nil {
-			c.logger.Warn(fmt.Sprintf("unmrshal %s event: %v", event.EventId, err))
-		}
-		out = append(out, event)
-	}
-	return out
 }
 
 func (c Client) LookupEvents(namespace, serviceAccount string) (Events, error) {
@@ -167,10 +81,7 @@ func (c Client) LookupEvents(namespace, serviceAccount string) (Events, error) {
 	for {
 		out, err := c.cloudTrailClient.LookupEvents(ctx, in)
 		if err != nil {
-			var responseError *http.ResponseError
-			if errors.As(err, &responseError) && responseError.HTTPStatusCode() == 404 {
-				return nil, errs.NewErrNotFound(fmt.Sprintf("events for %s user not found", username))
-			}
+			err = handleResponseError(err, fmt.Sprintf("events for %s user", username))
 			return nil, err
 		}
 		events = append(events, out.Events...)
@@ -180,4 +91,73 @@ func (c Client) LookupEvents(namespace, serviceAccount string) (Events, error) {
 		in.NextToken = out.NextToken
 	}
 	return c.toEvents(events), nil
+}
+
+func (c Client) GetClusterOIDCProviderUrl() (string, error) {
+	endpoint, err := c.getClusterEndpoint()
+	if err != nil {
+		return "", err
+	}
+	endpointWithoutScheme := strings.TrimPrefix(endpoint, "https://")
+
+	openIDConnectProvidersArns, err := c.listOpenIDConnectProvidersArns()
+	if err != nil {
+		return "", err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	for _, arn := range openIDConnectProvidersArns {
+		out, err := c.iamClient.GetOpenIDConnectProvider(ctx, &iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: aws.String(arn)})
+		if err != nil {
+			err = handleResponseError(err, fmt.Sprintf("openid connect provider %s", arn))
+			return "", err
+		}
+		url := aws.ToString(out.Url)
+		urlParts := strings.Split(url, "/")
+		id := urlParts[len(urlParts)-1]
+		if strings.HasPrefix(endpointWithoutScheme, id) {
+			return url, nil
+		}
+	}
+	return "", errs.NewErrNotFound(fmt.Sprintf("open id connect provider url not found for cluster endpoint %s", endpoint))
+}
+
+func (c Client) listOpenIDConnectProvidersArns() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	out, err := c.iamClient.ListOpenIDConnectProviders(ctx, &iam.ListOpenIDConnectProvidersInput{})
+	if err != nil {
+		err = handleResponseError(err, "openid connect providers")
+		return nil, err
+	}
+
+	var providers []string
+	for _, provider := range out.OpenIDConnectProviderList {
+		providers = append(providers, aws.ToString(provider.Arn))
+	}
+	return providers, nil
+}
+
+func (c Client) getClusterEndpoint() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	out, err := c.eksClient.DescribeCluster(ctx, &eks.DescribeClusterInput{Name: aws.String(c.clusterName)})
+	if err != nil {
+		err = handleResponseError(err, fmt.Sprintf("cluster %s", c.clusterName))
+		return "", err
+	}
+	return aws.ToString(out.Cluster.Endpoint), nil
+}
+
+// handleResponseError converts error to custom error (if possible) to make handling of errors easier
+func handleResponseError(err error, requestName string) error {
+	var responseError *http.ResponseError
+	if errors.As(err, &responseError) && responseError.HTTPStatusCode() == 404 {
+		return errs.NewErrNotFound(fmt.Sprintf("%s: not found", requestName))
+	}
+	return fmt.Errorf("%s: %w", requestName, err)
 }

@@ -6,7 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	"log/slog"
 	"strings"
 	"time"
@@ -33,16 +32,18 @@ func (s ServiceAccount) RoleName() string {
 
 type Client struct {
 	logger *slog.Logger
+	config Kubeconfig
 	coreV1 corev1.CoreV1Interface
 }
 
-func NewClient(logger *slog.Logger, restConfig *rest.Config) (Client, error) {
-	cs, err := kubernetes.NewForConfig(restConfig)
+func NewClient(logger *slog.Logger, config Kubeconfig) (Client, error) {
+	cs, err := kubernetes.NewForConfig(config.RestConfig)
 	if err != nil {
 		return Client{}, err
 	}
 	return Client{
-		logger: logger.With("component", "k8s"),
+		logger: logger,
+		config: config,
 		coreV1: cs.CoreV1(),
 	}, nil
 }

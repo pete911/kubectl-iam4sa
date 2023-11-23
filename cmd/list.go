@@ -6,6 +6,7 @@ import (
 	"github.com/pete911/kubectl-iam4sa/internal/k8s"
 	"github.com/pete911/kubectl-iam4sa/internal/out"
 	"github.com/spf13/cobra"
+	"log/slog"
 	"os"
 )
 
@@ -16,44 +17,43 @@ var (
 		Long:  "",
 		Run:   runListCmd,
 	}
-	flags Flags
 )
 
 func init() {
 	RootCmd.AddCommand(cmdList)
-	InitFlags(cmdList, &flags)
 }
 
 func runListCmd(_ *cobra.Command, args []string) {
-	logger := Logger()
-	kubeconfig := GetKubeconfig()
+	logger := GlobalFlags.Logger()
+	kubeconfig := GlobalFlags.Kubeconfig()
 
-	k8sClient, err := k8s.NewClient(logger, kubeconfig.RestConfig)
+	k8sClient, err := k8s.NewClient(logger, kubeconfig)
 	if err != nil {
 		fmt.Printf("k8s client: %v\n", err)
 		os.Exit(1)
 	}
 
-	awsClient, err := aws.NewClient(logger, kubeconfig.Region())
+	logger.Debug(fmt.Sprintf("kubeconfig: %s", kubeconfig))
+	awsClient, err := aws.NewClient(logger, kubeconfig.Region, kubeconfig.ClusterName)
 	if err != nil {
 		fmt.Printf("aws client: %v\n", err)
 		os.Exit(1)
 	}
 
-	fieldSelector := flags.FieldSelector(args)
-	sas, err := k8sClient.ListIAMServiceAccounts(flags.Namespace(), flags.Label(), fieldSelector)
+	fieldSelector := GlobalFlags.FieldSelector(args)
+	sas, err := k8sClient.ListIAMServiceAccounts(GlobalFlags.Namespace(), GlobalFlags.Label(), fieldSelector)
 	if err != nil {
 		fmt.Printf("list IAM service accounts: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := printTable(awsClient, sas); err != nil {
+	if err := printListTable(logger, awsClient, sas); err != nil {
 		fmt.Printf("print table: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func printTable(awsClient aws.Client, sas []k8s.ServiceAccount) error {
+func printListTable(logger *slog.Logger, awsClient aws.Client, sas []k8s.ServiceAccount) error {
 	table := out.NewTable()
 	if err := table.AddRow("NAMESPACE", "SERVICE ACCOUNT", "PODS", "IAM ROLE ACCOUNT", "IAM ROLE", "EVENTS", "FAILED"); err != nil {
 		return err
@@ -61,8 +61,7 @@ func printTable(awsClient aws.Client, sas []k8s.ServiceAccount) error {
 	for _, sa := range sas {
 		events, err := awsClient.LookupEvents(sa.Namespace, sa.Name)
 		if err != nil {
-			// TODO - log error instead of failing?
-			return err
+			logger.Error(fmt.Sprintf("lookup %s/%s event: %v", sa.Namespace, sa.Name, err))
 		}
 
 		numPods := fmt.Sprintf("%d", len(sa.Pods))
