@@ -45,7 +45,13 @@ IAM Role ARN: arn:aws:iam::123456789123:role/prometheus
   ],
   "Version": "2012-10-17"
 }
+Failed Events:
+TIME                  CODE          MESSAGE                    REQUEST ROLE                                     ACTUAL ROLE
+2023-11-23T15:35:48Z  AccessDenied  An unknown error occurred  arn:aws:iam::123456789123:role/promethus-ingest  arn:aws:iam::123456789123:role/prometheus
+2023-11-23T15:19:08Z  AccessDenied  An unknown error occurred  arn:aws:iam::123456789123:role/promethus-ingest  arn:aws:iam::123456789123:role/prometheus
 ```
 
 List more detailed information about service account(s). IAM Trust policy and also expected principal, aud and sub. This
-makes it easier to verify if the IAM policy is configured correctly.
+makes it easier to verify if the IAM policy is configured correctly. In the example above, the pod is requesting
+`prometheus-ingest` role, but the role that is set in annotation is `prometheus`. In this case
+most likely the pod needs to be restarted.

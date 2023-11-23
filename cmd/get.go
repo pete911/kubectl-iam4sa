@@ -48,23 +48,16 @@ func runGetCmd(_ *cobra.Command, args []string) {
 		fmt.Printf("get IAM service accounts: %v\n", err)
 		os.Exit(1)
 	}
-
-	if err := printGet(logger, awsClient, sas); err != nil {
-		fmt.Printf("print get: %v\n", err)
-		os.Exit(1)
-	}
+	printGet(logger, awsClient, sas)
 }
 
-func printGet(logger *slog.Logger, awsClient aws.Client, sas []k8s.ServiceAccount) error {
+func printGet(logger *slog.Logger, awsClient aws.Client, sas []k8s.ServiceAccount) {
 	for _, sa := range sas {
-		if err := printGetSa(logger, awsClient, sa); err != nil {
-			return err
-		}
+		printGetSa(logger, awsClient, sa)
 	}
-	return nil
 }
 
-func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount) error {
+func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount) {
 	role, err := awsClient.GetIAMRole(sa.RoleName())
 	if err != nil {
 		logger.Error(fmt.Sprintf("get role for %s/%s service account: %v", sa.Namespace, sa.Name, err))
@@ -101,24 +94,17 @@ func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount
 	// if there are any failed events, lets print them
 	if len(failedEvents) != 0 {
 		fmt.Println("Failed Events:")
-		table := out.NewTable()
-		if err := table.AddRow("TIME", "CODE", "MESSAGE", "REQUEST ROLE", "ACTUAL ROLE"); err != nil {
-			return err
-		}
+		table := out.NewTable(logger)
+		table.AddRow("TIME", "CODE", "MESSAGE", "REQUEST ROLE", "ACTUAL ROLE")
 		for i, event := range failedEvents {
 			// print max last 5 failed events
 			if i == 5 {
 				break
 			}
-			if err := table.AddRow(event.EventTime.Format(time.RFC3339), event.ErrorCode, event.ErrorMessage, event.RequestParameters.RoleArn, sa.IamRoleArn); err != nil {
-				return err
-			}
+			table.AddRow(event.EventTime.Format(time.RFC3339), event.ErrorCode, event.ErrorMessage, event.RequestParameters.RoleArn, sa.IamRoleArn)
 		}
-		if err := table.Print(); err != nil {
-			return err
-		}
+		table.Print()
 	}
-	return nil
 }
 
 func jsonPrettyPrint(logger *slog.Logger, in string) {

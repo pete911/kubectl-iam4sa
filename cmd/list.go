@@ -46,18 +46,12 @@ func runListCmd(_ *cobra.Command, args []string) {
 		fmt.Printf("list IAM service accounts: %v\n", err)
 		os.Exit(1)
 	}
-
-	if err := printListTable(logger, awsClient, sas); err != nil {
-		fmt.Printf("print table: %v\n", err)
-		os.Exit(1)
-	}
+	printListTable(logger, awsClient, sas)
 }
 
-func printListTable(logger *slog.Logger, awsClient aws.Client, sas []k8s.ServiceAccount) error {
-	table := out.NewTable()
-	if err := table.AddRow("NAMESPACE", "SERVICE ACCOUNT", "PODS", "IAM ROLE ACCOUNT", "IAM ROLE", "EVENTS", "FAILED"); err != nil {
-		return err
-	}
+func printListTable(logger *slog.Logger, awsClient aws.Client, sas []k8s.ServiceAccount) {
+	table := out.NewTable(logger)
+	table.AddRow("NAMESPACE", "SERVICE ACCOUNT", "PODS", "IAM ROLE ACCOUNT", "IAM ROLE", "EVENTS", "FAILED")
 	for _, sa := range sas {
 		events, err := awsClient.LookupEvents(sa.Namespace, sa.Name)
 		if err != nil {
@@ -67,9 +61,7 @@ func printListTable(logger *slog.Logger, awsClient aws.Client, sas []k8s.Service
 		numPods := fmt.Sprintf("%d", len(sa.Pods))
 		numEvents := fmt.Sprintf("%d", len(events))
 		numFailedEvents := fmt.Sprintf("%d", len(events.FailedEvents()))
-		if err := table.AddRow(sa.Namespace, sa.Name, numPods, sa.RoleAccount(), sa.RoleName(), numEvents, numFailedEvents); err != nil {
-			return err
-		}
+		table.AddRow(sa.Namespace, sa.Name, numPods, sa.RoleAccount(), sa.RoleName(), numEvents, numFailedEvents)
 	}
-	return table.Print()
+	table.Print()
 }
