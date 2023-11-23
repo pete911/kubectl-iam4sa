@@ -114,6 +114,9 @@ func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount
 				return err
 			}
 		}
+		if err := table.Print(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
