@@ -86,7 +86,7 @@ func (c Client) listIAMServiceAccounts(ctx context.Context, namespace, labelSele
 		if roleARN, ok := serviceAccount.Annotations[iamRoleARNAnnotation]; ok {
 			pods, err := c.listPods(ctx, namespace, serviceAccount.Name)
 			if err != nil {
-				return nil, fmt.Errorf("list pods for %s/%s service account", namespace, serviceAccount.Name)
+				return nil, fmt.Errorf("list pods for %s/%s service account: %v", namespace, serviceAccount.Name, err)
 			}
 			serviceAccounts = append(serviceAccounts, ServiceAccount{
 				Name:       serviceAccount.Name,
