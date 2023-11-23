@@ -11,6 +11,7 @@ import (
 	cloudtrailtypes "github.com/aws/aws-sdk-go-v2/service/cloudtrail/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/pete911/kubectl-iam4sa/internal/errs"
 	"log/slog"
 	"strings"
@@ -22,6 +23,8 @@ const eventsHours = 12
 type Client struct {
 	logger           *slog.Logger
 	clusterName      string
+	account          string
+	region           string
 	iamClient        *iam.Client
 	cloudTrailClient *cloudtrail.Client
 	eksClient        *eks.Client
@@ -43,9 +46,17 @@ func NewClient(logger *slog.Logger, region, clusterName string) (Client, error) 
 		cfg.Region = region
 	}
 
+	out, err := sts.NewFromConfig(cfg).GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return Client{}, err
+	}
+	account := aws.ToString(out.Account)
+
 	return Client{
 		logger:           logger,
 		clusterName:      clusterName,
+		account:          account,
+		region:           cfg.Region,
 		iamClient:        iam.NewFromConfig(cfg),
 		cloudTrailClient: cloudtrail.NewFromConfig(cfg),
 		eksClient:        eks.NewFromConfig(cfg),
@@ -103,50 +114,13 @@ func (c Client) GetClusterOIDCProvider() (OIDCProvider, error) {
 	if err != nil {
 		return OIDCProvider{}, err
 	}
-	endpointWithoutScheme := strings.TrimPrefix(endpoint, "https://")
+	id := strings.TrimPrefix(strings.Split(endpoint, ".")[0], "https://")
 
-	openIDConnectProvidersArns, err := c.listOpenIDConnectProvidersArns()
-	if err != nil {
-		return OIDCProvider{}, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	for _, arn := range openIDConnectProvidersArns {
-		out, err := c.iamClient.GetOpenIDConnectProvider(ctx, &iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: aws.String(arn)})
-		if err != nil {
-			err = handleResponseError(err, fmt.Sprintf("openid connect provider %s", arn))
-			return OIDCProvider{}, err
-		}
-		url := aws.ToString(out.Url)
-		urlParts := strings.Split(url, "/")
-		id := urlParts[len(urlParts)-1]
-		if strings.HasPrefix(endpointWithoutScheme, id) {
-			return OIDCProvider{
-				Url: url,
-				Arn: arn,
-			}, nil
-		}
-	}
-	return OIDCProvider{}, errs.NewErrNotFound(fmt.Sprintf("open id connect provider url not found for cluster endpoint %s", endpoint))
-}
-
-func (c Client) listOpenIDConnectProvidersArns() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	out, err := c.iamClient.ListOpenIDConnectProviders(ctx, &iam.ListOpenIDConnectProvidersInput{})
-	if err != nil {
-		err = handleResponseError(err, "openid connect providers")
-		return nil, err
-	}
-
-	var providers []string
-	for _, provider := range out.OpenIDConnectProviderList {
-		providers = append(providers, aws.ToString(provider.Arn))
-	}
-	return providers, nil
+	// we could list iam oidc providers and match against cluster endpoint, but this requires less privileges
+	return OIDCProvider{
+		Url: fmt.Sprintf("oidc.eks.%s.amazonaws.com/id/%s", c.region, id),
+		Arn: fmt.Sprintf("arn:aws:iam::%s:oidc-provider/oidc.eks.%s.amazonaws.com/id/%s", c.account, c.region, id),
+	}, nil
 }
 
 func (c Client) getClusterEndpoint() (string, error) {
