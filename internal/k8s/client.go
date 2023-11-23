@@ -49,24 +49,21 @@ func NewClient(logger *slog.Logger, config Kubeconfig) (Client, error) {
 }
 
 func (c Client) ListIAMServiceAccounts(namespace, labelSelector, fieldSelector string) ([]ServiceAccount, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	if namespace == "" {
-		return c.listAllIAMServiceAccounts(ctx, labelSelector, fieldSelector)
+		return c.listAllIAMServiceAccounts(labelSelector, fieldSelector)
 	}
-	return c.listIAMServiceAccounts(ctx, namespace, labelSelector, fieldSelector)
+	return c.listIAMServiceAccounts(namespace, labelSelector, fieldSelector)
 }
 
-func (c Client) listAllIAMServiceAccounts(ctx context.Context, labelSelector, fieldSelector string) ([]ServiceAccount, error) {
-	namespaces, err := c.getNamespaces(ctx)
+func (c Client) listAllIAMServiceAccounts(labelSelector, fieldSelector string) ([]ServiceAccount, error) {
+	namespaces, err := c.getNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("get namespaces: %w", err)
 	}
 
 	var allServiceAccounts []ServiceAccount
 	for _, namespace := range namespaces {
-		serviceAccounts, err := c.listIAMServiceAccounts(ctx, namespace, labelSelector, fieldSelector)
+		serviceAccounts, err := c.listIAMServiceAccounts(namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +72,10 @@ func (c Client) listAllIAMServiceAccounts(ctx context.Context, labelSelector, fi
 	return allServiceAccounts, nil
 }
 
-func (c Client) listIAMServiceAccounts(ctx context.Context, namespace, labelSelector, fieldSelector string) ([]ServiceAccount, error) {
+func (c Client) listIAMServiceAccounts(namespace, labelSelector, fieldSelector string) ([]ServiceAccount, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	serviceAccountList, err := c.coreV1.ServiceAccounts(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector, FieldSelector: fieldSelector})
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (c Client) listIAMServiceAccounts(ctx context.Context, namespace, labelSele
 	var serviceAccounts []ServiceAccount
 	for _, serviceAccount := range serviceAccountList.Items {
 		if roleARN, ok := serviceAccount.Annotations[iamRoleARNAnnotation]; ok {
-			pods, err := c.listPods(ctx, namespace, serviceAccount.Name)
+			pods, err := c.listPods(namespace, serviceAccount.Name)
 			if err != nil {
 				return nil, fmt.Errorf("list pods for %s/%s service account: %v", namespace, serviceAccount.Name, err)
 			}
@@ -99,7 +99,10 @@ func (c Client) listIAMServiceAccounts(ctx context.Context, namespace, labelSele
 	return serviceAccounts, nil
 }
 
-func (c Client) listPods(ctx context.Context, namespace, serviceAccountName string) ([]string, error) {
+func (c Client) listPods(namespace, serviceAccountName string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	podList, err := c.coreV1.Pods(namespace).List(ctx, metav1.ListOptions{FieldSelector: fmt.Sprintf("spec.serviceAccountName=%s", serviceAccountName)})
 	if err != nil {
 		return nil, err
@@ -111,7 +114,10 @@ func (c Client) listPods(ctx context.Context, namespace, serviceAccountName stri
 	return out, nil
 }
 
-func (c Client) getNamespaces(ctx context.Context) ([]string, error) {
+func (c Client) getNamespaces() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	namespaceList, err := c.coreV1.Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
