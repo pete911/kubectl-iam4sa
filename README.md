@@ -1,6 +1,23 @@
 # kubectl-iam4sa
 Debug IAM roles for service accounts. User needs to have access to cluster, AWS IAM and CloudTrail API.
 
+```shell
+Available Commands:
+  get      get IAM service account
+  help     help about any command
+  list     list IAM service accounts
+  version  print version
+
+Flags:
+  -A, --all-namespaces          all kubernetes namespaces
+      --field-selector string   kubernetes field selector
+  -h, --help                    help for this command
+      --kubeconfig string       path to kubeconfig file (default "~/.kube/config")
+  -l, --label string            kubernetes label
+      --log-level string        log level - debug, info, warn, error (default "warn")
+  -n, --namespace string        kubernetes namespace (default "default")
+```
+
 ## list service accounts with IAM role
 
 `kubectl-iam4sa list -A` - list service accounts in all namespaces
@@ -16,7 +33,7 @@ account. IAM Role account and name is from the service account annotation. Event
 
 ## get service account
 
-`kubeclt-iam4sa get -n <namespace> <service-account>`
+`kubectl-iam4sa get -n <namespace> <service-account>`
 ```shell
 Namespace: prometheus Name: amp-iamproxy-ingest-service-account
 pods:
