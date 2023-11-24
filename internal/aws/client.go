@@ -125,7 +125,7 @@ func (c Client) GetClusterOidcProvider(clusterOidcIssuerId string) (OidcProvider
 		err = handleResponseError(err, fmt.Sprintf("oidc provider %s", arn))
 		return OidcProvider{}, err
 	}
-	return toOidcProvider(out), nil
+	return toOidcProvider(out, arn), nil
 }
 
 // handleResponseError converts error to custom error (if possible) to make handling of errors easier

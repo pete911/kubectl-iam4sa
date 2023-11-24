@@ -71,6 +71,7 @@ func printCluster(logger *slog.Logger, cluster aws.Cluster, oidcProvider aws.Oid
 		return
 	}
 	fmt.Println("OIDC Provider:")
+	fmt.Printf("  Arn:         %s\n", oidcProvider.Arn)
 	fmt.Printf("  Url:         %s\n", oidcProvider.Url)
 	fmt.Printf("  Created:     %s\n", oidcProvider.CreateDate.Format(time.RFC3339))
 	fmt.Println("  Client Ids:")

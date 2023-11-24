@@ -32,6 +32,7 @@ OIDC Issuer:
   Url:         https://oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
   Thumbprint:  9e9e9e9e999999999eeeee9992e9999998888877
 OIDC Provider:
+  Arn:         arn:aws:iam::123456789123:oidc-provider/oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
   Url:         oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
   Created:     2023-10-13T08:48:18Z
   Client Ids:
