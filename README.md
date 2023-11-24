@@ -3,6 +3,7 @@ Debug IAM roles for service accounts. User needs to have access to cluster, AWS 
 
 ```shell
 Available Commands:
+  cluster  EKS cluster oidc information
   get      get IAM service account
   help     help about any command
   list     list IAM service accounts
@@ -18,10 +19,33 @@ Flags:
   -n, --namespace string        kubernetes namespace (default "default")
 ```
 
+## cluster information
+
+`kubectl-iam4sa cluster`
+
+```
+Name:        main
+Status:      ACTIVE
+Endpoint:    https://123456789123.gr7.eu-west-2.eks.amazonaws.com
+Created:     2023-10-13T08:41:17Z
+OIDC Issuer:
+  Url:         https://oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
+  Thumbprint:  9e9e9e9e999999999eeeee9992e9999998888877
+OIDC Provider:
+  Url:         oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
+  Created:     2023-10-13T08:48:18Z
+  Client Ids:
+    sts.amazonaws.com
+  Thumbprints:
+    9e9e9e9e999999999eeeee9992e9999998888877
+```
+
+Verify that the OIDC Provider is found and has matching url and thumbprint.
+
 ## list service accounts with IAM role
 
 `kubectl-iam4sa list -A` - list service accounts in all namespaces
-```shell
+```
 NAMESPACE   SERVICE ACCOUNT                      PODS  IAM ROLE ACCOUNT  IAM ROLE              EVENTS  FAILED
 default     ebs-csi-controller-sa                2     123456789123      ebs-csi-controller    0       0
 karpenter   karpenter                            2     123456789123      karpenter-controller  15      0
@@ -34,15 +58,13 @@ account. IAM Role account and name is from the service account annotation. Event
 ## get service account
 
 `kubectl-iam4sa get -n <namespace> <service-account>`
-```shell
-Namespace: prometheus Name: amp-iamproxy-ingest-service-account
-pods:
+```
+Name:      amp-iamproxy-ingest-service-account
+Namespace: prometheus
+Pods:
   prometheus-server-abc-xyz
-IAM Role ARN: arn:aws:iam::123456789123:role/prometheus
-  Expected Federated Principal: arn:aws:iam::123456789123:oidc-provider/oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123
-  Expected aud: oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:aud": "sts.amazon.com"
-  Expected sub: oidc.eks.eu-west-2.amazonaws.com/id/abcxyz123:sub": "system:serviceaccount:prometheus:amp-iamproxy-ingest-service-account"
-  Assume Policy Document:
+
+Service Account Role: arn:aws:iam::123456789123:role/prometheus
 {
   "Statement": [
     {
@@ -62,13 +84,15 @@ IAM Role ARN: arn:aws:iam::123456789123:role/prometheus
   ],
   "Version": "2012-10-17"
 }
+
 Failed Events:
 TIME                  CODE          MESSAGE                    REQUEST ROLE                                     ACTUAL ROLE
 2023-11-23T15:35:48Z  AccessDenied  An unknown error occurred  arn:aws:iam::123456789123:role/promethus-ingest  arn:aws:iam::123456789123:role/prometheus
 2023-11-23T15:19:08Z  AccessDenied  An unknown error occurred  arn:aws:iam::123456789123:role/promethus-ingest  arn:aws:iam::123456789123:role/prometheus
 ```
 
-List more detailed information about service account(s). IAM Trust policy and also expected principal, aud and sub. This
-makes it easier to verify if the IAM policy is configured correctly. In the example above, the pod is requesting
-`prometheus-ingest` role, but the role that is set in annotation is `prometheus`. In this case
-most likely the pod needs to be restarted.
+List more detailed information about service account(s) and IAM role(s). Verify principal and condition in the trust
+policy with output from `kubectl-iam4sa cluster` output.
+
+In the example above, we can see in the failed events, that the pod is requesting `prometheus-ingest` role, but the role
+that is set in annotation is `prometheus`. In this case most likely the pod needs to be restarted.

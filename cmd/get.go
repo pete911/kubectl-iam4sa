@@ -62,12 +62,6 @@ func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount
 	if err != nil {
 		logger.Error(fmt.Sprintf("get role for %s/%s service account: %v", sa.Namespace, sa.Name, err))
 	}
-	roleExists := sa.RoleName() == role.Name
-
-	oidcProvider, err := awsClient.GetClusterOIDCProvider()
-	if err != nil {
-		logger.Error(fmt.Sprintf("get cluster oidc provider url: %v", err))
-	}
 
 	events, err := awsClient.LookupEvents(sa.Namespace, sa.Name)
 	if err != nil {
@@ -75,36 +69,48 @@ func printGetSa(logger *slog.Logger, awsClient aws.Client, sa k8s.ServiceAccount
 	}
 	failedEvents := events.FailedEvents()
 
-	fmt.Printf("Namespace: %s Name: %s\n", sa.Namespace, sa.Name)
-	fmt.Println("pods:")
-	for _, pod := range sa.Pods {
-		fmt.Printf("  %s\n", pod)
-	}
-	fmt.Printf("IAM Role ARN: %s\n", sa.IamRoleArn)
-	fmt.Printf("  Expected Federated Principal: %s\n", oidcProvider.Arn)
-	fmt.Printf(`  Expected aud: %s:aud": "sts.amazon.com"`, oidcProvider.Url)
+	printSA(sa)
+
 	fmt.Println()
-	fmt.Printf(`  Expected sub: %s:sub": "system:serviceaccount:%s:%s"`, oidcProvider.Url, sa.Namespace, sa.Name)
-	fmt.Println()
-	if roleExists {
-		fmt.Println("  Assume Policy Document:")
-		jsonPrettyPrint(logger, role.AssumeRolePolicyDocument)
-	}
+	printRole(logger, sa, role)
 
 	// if there are any failed events, lets print them
 	if len(failedEvents) != 0 {
+		fmt.Println()
 		fmt.Println("Failed Events:")
-		table := out.NewTable(logger)
-		table.AddRow("TIME", "CODE", "MESSAGE", "REQUEST ROLE", "ACTUAL ROLE")
-		for i, event := range failedEvents {
-			// print max last 5 failed events
-			if i == 5 {
-				break
-			}
-			table.AddRow(event.EventTime.Format(time.RFC3339), event.ErrorCode, event.ErrorMessage, event.RequestParameters.RoleArn, sa.IamRoleArn)
-		}
-		table.Print()
+		printEvents(logger, sa, failedEvents)
 	}
+}
+
+func printSA(sa k8s.ServiceAccount) {
+	fmt.Printf("Name:      %s\n", sa.Name)
+	fmt.Printf("Namespace: %s\n", sa.Namespace)
+	fmt.Println("Pods:")
+	for _, pod := range sa.Pods {
+		fmt.Printf("  %s\n", pod)
+	}
+}
+
+func printRole(logger *slog.Logger, sa k8s.ServiceAccount, role aws.Role) {
+	fmt.Printf("Service Account Role: %s\n", sa.IamRoleArn)
+	if role.ARN == "" {
+		fmt.Println("AWS Role Policy Document: not found")
+		return
+	}
+	jsonPrettyPrint(logger, role.AssumeRolePolicyDocument)
+}
+
+func printEvents(logger *slog.Logger, sa k8s.ServiceAccount, events []aws.Event) {
+	table := out.NewTable(logger)
+	table.AddRow("TIME", "CODE", "MESSAGE", "REQUEST ROLE", "SA ROLE")
+	for i, event := range events {
+		// print max last 5 failed events
+		if i == 5 {
+			break
+		}
+		table.AddRow(event.EventTime.Format(time.RFC3339), event.ErrorCode, event.ErrorMessage, event.RequestParameters.RoleArn, sa.IamRoleArn)
+	}
+	table.Print()
 }
 
 func jsonPrettyPrint(logger *slog.Logger, in string) {

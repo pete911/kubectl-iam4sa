@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/pete911/kubectl-iam4sa/internal/errs"
 	"log/slog"
-	"strings"
 	"time"
 )
 
@@ -104,35 +103,29 @@ func (c Client) LookupEvents(namespace, serviceAccount string) (Events, error) {
 	return c.toEvents(events), nil
 }
 
-type OIDCProvider struct {
-	Url string
-	Arn string
-}
-
-func (c Client) GetClusterOIDCProvider() (OIDCProvider, error) {
-	endpoint, err := c.getClusterEndpoint()
-	if err != nil {
-		return OIDCProvider{}, err
-	}
-	id := strings.TrimPrefix(strings.Split(endpoint, ".")[0], "https://")
-
-	// we could list iam oidc providers and match against cluster endpoint, but this requires less privileges
-	return OIDCProvider{
-		Url: fmt.Sprintf("oidc.eks.%s.amazonaws.com/id/%s", c.region, id),
-		Arn: fmt.Sprintf("arn:aws:iam::%s:oidc-provider/oidc.eks.%s.amazonaws.com/id/%s", c.account, c.region, id),
-	}, nil
-}
-
-func (c Client) getClusterEndpoint() (string, error) {
+func (c Client) DescribeCluster() (Cluster, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	out, err := c.eksClient.DescribeCluster(ctx, &eks.DescribeClusterInput{Name: aws.String(c.clusterName)})
 	if err != nil {
 		err = handleResponseError(err, fmt.Sprintf("cluster %s", c.clusterName))
-		return "", err
+		return Cluster{}, err
 	}
-	return aws.ToString(out.Cluster.Endpoint), nil
+	return c.toCluster(out.Cluster), nil
+}
+
+func (c Client) GetClusterOidcProvider(clusterOidcIssuerId string) (OidcProvider, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	arn := fmt.Sprintf("arn:aws:iam::%s:oidc-provider/oidc.eks.%s.amazonaws.com/id/%s", c.account, c.region, clusterOidcIssuerId)
+	out, err := c.iamClient.GetOpenIDConnectProvider(ctx, &iam.GetOpenIDConnectProviderInput{OpenIDConnectProviderArn: aws.String(arn)})
+	if err != nil {
+		err = handleResponseError(err, fmt.Sprintf("oidc provider %s", arn))
+		return OidcProvider{}, err
+	}
+	return toOidcProvider(out), nil
 }
 
 // handleResponseError converts error to custom error (if possible) to make handling of errors easier

@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.33.1
 	github.com/aws/aws-sdk-go-v2/service/eks v1.33.2
 	github.com/aws/aws-sdk-go-v2/service/iam v1.27.3
+	github.com/aws/aws-sdk-go-v2/service/sts v1.25.4
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	k8s.io/apimachinery v0.28.4
@@ -24,7 +25,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.17.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.20.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.25.4 // indirect
 	github.com/aws/smithy-go v1.17.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
