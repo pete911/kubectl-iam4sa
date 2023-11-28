@@ -97,3 +97,20 @@ policy with output from `kubectl-iam4sa cluster` output.
 
 In the example above, we can see in the failed events, that the pod is requesting `prometheus-ingest` role, but the role
 that is set in annotation is `prometheus`. In this case most likely the pod needs to be restarted.
+
+## download
+
+- [binary](https://github.com/pete911/kubectl-iam4sa/releases)
+
+## build/install
+
+### brew
+
+- add tap `brew tap pete911/tap`
+- install `brew install kubectl-iam4sa`
+
+### go
+
+[go](https://golang.org/dl/) has to be installed.
+- build `go build`
+- install `go install`

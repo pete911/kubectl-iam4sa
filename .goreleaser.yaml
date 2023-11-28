@@ -30,3 +30,16 @@ release:
   github:
     owner: pete911
     name: kubectl-iam4sa
+brews:
+  - repository:
+      owner: pete911
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    name: kubectl-iam4sa
+    homepage: "https://github.com/pete911/kubectl-iam4sa"
+    description: "debug IAM roles for service accounts"
+    folder: Formula
+    install: |
+      bin.install "kubectl-iam4sa"
+    test: |
+      assert_match /Usage/, shell_output("#{bin}/kubectl-iam4sa -h", 0)
