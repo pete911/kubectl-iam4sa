@@ -3,7 +3,7 @@ module github.com/pete911/kubectl-iam4sa
 go 1.21.4
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.23.1
+	github.com/aws/aws-sdk-go-v2 v1.23.2
 	github.com/aws/aws-sdk-go-v2/config v1.25.6
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.34.1
 	github.com/aws/aws-sdk-go-v2/service/eks v1.34.0
