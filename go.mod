@@ -5,7 +5,7 @@ go 1.21.4
 require (
 	github.com/aws/aws-sdk-go-v2 v1.25.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.2
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.37.3
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/eks v1.40.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.0
