@@ -12,8 +12,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.3 h1:Qvodo9gHG9F3E8SfYOs
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.3/go.mod h1:vCKrdLXtybdf/uQd/YfVR2r5pcbNuEYKzMQpcxmeSJw=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 h1:hT8rVHwugYE2lEfdFE0QWVo81lF7jMrYJVDWI+f+VxU=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0/go.mod h1:8tu/lYfQfFe6IGnaOdrpVgEL2IrrDOf6/m9RQum4NkY=
-github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.38.2 h1:nj7pYwB4I8tBer5b1830bxNiq24QMJZSbTNA3WzdnQE=
-github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.38.2/go.mod h1:QBIqzw/6LB/2ndOFRA2Lx64okTkLJiJIWp+9koWwzdY=
+github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.39.0 h1:6Q78wgRuKzSAN8VuSgAyFxY9kvyatmlUEohlXl29LR4=
+github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.39.0/go.mod h1:QBIqzw/6LB/2ndOFRA2Lx64okTkLJiJIWp+9koWwzdY=
 github.com/aws/aws-sdk-go-v2/service/eks v1.41.1 h1:08hbVK5suEtDMgI7r0x8MA6arzYWvQEcQ/zyU4E7hyM=
 github.com/aws/aws-sdk-go-v2/service/eks v1.41.1/go.mod h1:tVeE5cg0q+69sxgMsiyFnWrMnuwgui7FruNgPMXt7Lc=
 github.com/aws/aws-sdk-go-v2/service/iam v1.31.2 h1:LD+6Ln3nHvQ/1rn3hATa+xjnTkr3LUo4k/6RvdOVFGE=
