@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.39.2
 	github.com/aws/aws-sdk-go-v2/service/eks v1.42.1
-	github.com/aws/aws-sdk-go-v2/service/iam v1.31.4
+	github.com/aws/aws-sdk-go-v2/service/iam v1.32.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
