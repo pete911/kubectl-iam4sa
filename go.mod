@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eks v1.43.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.32.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	k8s.io/apimachinery v0.30.2
 	k8s.io/client-go v0.30.2
