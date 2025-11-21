@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/aws/aws-sdk-go-v2 v1.40.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.0
-	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.54.1
+	github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.55.0
 	github.com/aws/aws-sdk-go-v2/service/eks v1.74.10
 	github.com/aws/aws-sdk-go-v2/service/iam v1.52.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.1
