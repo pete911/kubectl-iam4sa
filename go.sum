@@ -14,8 +14,8 @@ github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1 h1:yhw5KD1phVyP9vijxOUzDfEtJx+b
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1/go.mod h1:ZW2e0d7DYlRxlS9hEiMXE47gTdX5KRN4byUiNbUpG+Q=
 github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.62.0 h1:Nyoac3KKgpycct4GR1tyCN9RnyQ3QoTP8hPWrg2aoYU=
 github.com/aws/aws-sdk-go-v2/service/cloudtrail v1.62.0/go.mod h1:mK0cQpCJmP5m8OakwWxHmHX1Ztszwo8depO1YiZiyxU=
-github.com/aws/aws-sdk-go-v2/service/eks v1.96.0 h1:nIaOY6WlURW/8YP0lu8OBNHPl24/biUxe/C6pZ96g1w=
-github.com/aws/aws-sdk-go-v2/service/eks v1.96.0/go.mod h1:VW9+jZicSbAPGHczf4tlIwgjkNT+5KXYYDbz/PxsRTs=
+github.com/aws/aws-sdk-go-v2/service/eks v1.97.0 h1:/i3r5G7l4VpqegBcuTq2J3mAo9TjE3l3E/dNQFj7JYk=
+github.com/aws/aws-sdk-go-v2/service/eks v1.97.0/go.mod h1:VW9+jZicSbAPGHczf4tlIwgjkNT+5KXYYDbz/PxsRTs=
 github.com/aws/aws-sdk-go-v2/service/iam v1.62.0 h1:pMq9Wvwbxre0ALXgh6wesNH3+92DaGzAle38t2V0ucU=
 github.com/aws/aws-sdk-go-v2/service/iam v1.62.0/go.mod h1:k0YVlnUF0eaJtm8g0VcFDn9LVfK38XdrXTHRd/EeflQ=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19 h1:bAdDl/HkGCcGPoe25ToSHEw23VIxt6CT5fLcg111BKg=
